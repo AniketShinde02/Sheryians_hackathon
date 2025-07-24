@@ -7,7 +7,7 @@
 ---
 
 ## 🌐 Live Demo
-[[Live Site Link – Paste your Vercel URL here]](https://sheryians-hackathon-2ht4hmcqe-aniketshinde02s-projects.vercel.app/)
+[[Live Site Link]](https://sheryians-hackathon-2ht4hmcqe-aniketshinde02s-projects.vercel.app/)
 
 ---
 
