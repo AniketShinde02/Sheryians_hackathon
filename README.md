@@ -7,7 +7,7 @@
 ---
 
 ## 🌐 Live Demo
-[Live Site Link](https://sheryians-hackathon-omega.vercel.app/))
+[Live Site Link](https://sheryians-hackathon-omega.vercel.app/)
 
 ---
 
