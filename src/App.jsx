@@ -31,6 +31,9 @@ import Trending from './Trending.jsx';
 import { ShoppingBag } from 'lucide-react';
 import ProductDrawer from './ProductDrawer.jsx';
 import CheckoutDrawer from './CheckoutDrawer.jsx';
+import CookieConsent from './cookie';
+import SlowConnectionLoader from './SlowConnectionLoader.jsx';
+import { OfflineErrorPopup, ReloadTimeoutErrorPage } from './errors.jsx';
 
 
 const categories = [
@@ -305,20 +308,42 @@ function FloatingCardMenu({ open, onClose, onScrollToCollection, cartCount, onCa
 }
 
 
-function Navbar({ onScrollToCollection, cartCount, onShop, onCart }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+function Navbar({ onScrollToCollection, cartCount, onShop, onCart, menuOpen, setMenuOpen }) {
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(typeof window !== 'undefined' ? window.scrollY : 0);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY > lastScrollY && window.scrollY > 60) {
+            setShowHeader(false); // Hide on scroll down
+          } else {
+            setShowHeader(true); // Show on scroll up
+          }
+          setLastScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   return (
     <>
-      <nav className="fixed left-0 right-0 top-0 z-40 flex items-center justify-between px-2 md:px-5 lg:px-6 h-12 md:h-14 lg:h-16 bg-white/90 shadow-sm font-grotesk">
+      <nav className={`fixed left-0 right-0 top-0 z-40 flex items-center justify-between px-2 md:px-5 lg:px-6 h-12 md:h-14 lg:h-16 bg-white/90 shadow-sm font-grotesk transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="flex items-center gap-2">
           <ShoppingBag className="w-7 h-7 text-gray-800" />
           <span className="text-xl font-bold text-gray-800 font-grotesk tracking-wider">OVERLAYS</span>
         </div>
-        <div className="hidden sm:flex gap-3 md:gap-2 text-sm md:text-xs lg:text-base font-semibold text-gray-700 font-sans items-center min-w-0 flex-shrink flex-wrap">
-          <a href="#collection-grid" className="hover:text-green-700 transition cursor-pointer" onClick={onScrollToCollection}>Shop by Category</a>
-          <Link to="/ShopByCollection" className="hover:text-green-700 transition cursor-pointer">Shop by Collection</Link>
-          <Link to="/Trending" className="hover:text-green-700 transition cursor-pointer">Trending</Link>
-          <span className="hover:text-green-700 transition cursor-pointer md:hidden lg:inline">Contact</span>
+        <div className="hidden sm:flex gap-3 md:gap-5 text-sm md:text-base lg:text-lg font-semibold text-gray-700 font-sans items-center min-w-0 flex-shrink flex-wrap  mr-14">
+          <a href="#collection-grid" className="hover:text-green-700 transition cursor-pointer" onClick={onScrollToCollection}>Categories</a>
+          <Link to="/ShopByCollection" className="hover:text-green-700 transition cursor-pointer">Collections</Link>
+          <Link to="/Trending" className="hover:text-green-700 transition cursor-pointer"> Trendings</Link>
+          <span className="hover:text-green-700 transition cursor-pointer md:hidden lg:inline">About Us</span>
         </div>
         <div className="flex items-center gap-2">
           <SquareGridMenuButton open={menuOpen} setOpen={setMenuOpen} />
@@ -540,7 +565,7 @@ function EditorialHero() {
           </div>
         </div>
         {/* Call-to-action button */}
-        <RippleButton className="mt-6 px-8 py-3 rounded-full bg-green-700 text-white font-bold shadow hover:bg-green-800 transition w-max font-grotesk text-lg">Shop New Arrivals</RippleButton>
+        <Link to="/Trending" className="mt-6 px-8 py-3 rounded-full bg-green-700 text-white font-bold shadow hover:bg-green-800 transition w-max font-grotesk text-lg text-center block">Shop New Arrivals</Link>
       </div>
       {/* Product carousel section */}
       <motion.div
@@ -549,7 +574,7 @@ function EditorialHero() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.3, type: 'spring', stiffness: 60, damping: 18 }}
       >
-        <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[420px] lg:h-[420px] rounded-full bg-green-100 border-8 border-green-700 overflow-hidden shadow-lg flex items-center justify-center animate-fade-in">
+        <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[420px] lg:h-[420px] rounded-full bg-green-100 border-8 border-green-700 overflow-hidden shadow-lg flex items-center justify-center animate-fade-in relative">
           <Swiper
             effect="coverflow"
             grabCursor={true}
@@ -569,12 +594,12 @@ function EditorialHero() {
           >
             {heroImages.map((img, idx) => (
               <SwiperSlide key={idx}>
-                <img src={img} alt={`Hero ${idx + 1}`} loading="lazy" className="object-cover w-full h-full" />
+                <img src={img} alt={`Hero ${idx + 1}`} loading="lazy" className="object-cover w-full h-full" onError={() => console.error('Hero image failed to load:', img)} />
               </SwiperSlide>
             ))}
           </Swiper>
+          <AnimatedBadge pulse className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 bg-yellow-300 text-yellow-900 px-2 sm:px-4 py-1 rounded-full font-bold text-xs sm:text-sm md:text-base shadow font-grotesk z-10">STYLE</AnimatedBadge>
         </div>
-        <AnimatedBadge pulse className="absolute bottom-4 right-4 bg-yellow-300 text-yellow-900 px-4 py-1 rounded-full font-bold text-xs shadow font-grotesk">STYLE</AnimatedBadge>
       </motion.div>
     </motion.section>
   );
@@ -771,9 +796,12 @@ function CollectionGrid({ onRequireAuth, isLoggedIn, selectedProduct, setSelecte
   const [adding, setAdding] = useState(null); // index of item being added
 
   // 3. Filter products based on active filter
+  // Show 4 cards on mobile, 8 on sm+ screens
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : true;
+  const maxCards = isMobile ? 4 : 8;
   const filteredProducts = active === "Our Store"
-    ? products.slice(0, 8)
-    : products.filter((item) => item.category === active).slice(0, 8);
+    ? products.slice(0, maxCards)
+    : products.filter((item) => item.category === active).slice(0, maxCards);
 
   return (
     <section id="collection-grid" className="w-full mx-auto bg-[#2d3a2e] py-6 sm:py-10 px-4 sm:px-8  my-10 font-grotesk">
@@ -782,33 +810,35 @@ function CollectionGrid({ onRequireAuth, isLoggedIn, selectedProduct, setSelecte
         {/* Sticky filter bar: stays at top of collection grid when scrolling */}
         <div className="sticky top-[5rem] z-30 bg-[#2d3a2e] grid grid-cols-2 sm:flex flex-wrap gap-2 justify-center md:justify-start py-2">
           {filters.map((f) => (
-            <button key={f} onClick={() => setActive(f)} className={`px-4 py-1 rounded-full text-xs font-bold border ${active === f ? "bg-yellow-300 text-yellow-900 border-yellow-300" : "bg-white/10 text-white border-white/20"} transition`}>{f}</button>
+            <button
+              key={f}
+              onClick={() => setActive(f)}
+              className={`px-4 py-1 rounded-full text-xs font-bold border ${active === f ? "bg-yellow-300 text-yellow-900 border-yellow-300" : "bg-white/10 text-white border-white/20"} transition ${f === 'Accessories' ? 'hidden sm:inline-block' : ''}`}
+            >
+              {f}
+            </button>
           ))}
         </div>
       </div>
 
   
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 w-full justify-center items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 w-full items-stretch justify-center">
         {filteredProducts.map((item, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            whileHover={{
-              scale: 1.05,
-              y: -5,
-              transition: { duration: 0.3, ease: "easeOut" }
-            }}
-            className="w-[90vw] max-w-xs mx-auto rounded-2xl bg-[#232b24] shadow-lg p-3 sm:p-4 md:p-5 flex flex-col h-full items-center text-center md:items-start md:text-left cursor-pointer group mb-3"
+            className="w-[90vw] max-w-xs mx-auto sm:w-full sm:max-w-none sm:mx-0 rounded-2xl bg-[#232b24] shadow-lg p-4 sm:p-5 flex flex-col transition-transform duration-300 hover:scale-105 h-full animate-fade-in-up"
+            style={{ animationDelay: `${i * 0.1}s` }}
           >
-            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-3 border-2 border-[#313d33] shadow-md transition-all duration-300 bg-[#232b24] flex items-center justify-center group-hover:shadow-xl">
+            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 border-2 border-[#313d33] shadow-md transition-all duration-300 bg-[#232b24] flex items-center justify-center">
               <img
                 src={item.img || fallbackImg}
                 alt={item.name}
                 loading="lazy"
-                className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                className="object-cover w-full h-full"
               />
             </div>
             <h3 className="text-base sm:text-lg md:text-xl font-serif font-bold text-white mb-1 mt-2 text-center md:text-left w-full group-hover:text-yellow-300 transition-colors duration-300">{item.name}</h3>
@@ -836,17 +866,17 @@ function CollectionGrid({ onRequireAuth, isLoggedIn, selectedProduct, setSelecte
 function NewsSection() {
   return (
     <section id="trending-news" className="w-full bg-white py-8 sm:py-12 px-2 sm:px-4 md:px-6 lg:px-8 xl:px-12 2xl:px-24 font-grotesk">
-      <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-gray-900 mb-6 sm:mb-8">A LOOK AT FASHION TURN TOWARDS</h2>
+      <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-gray-900 mb-6 sm:mb-8 ml-3 sm:ml-0">A LOOK AT FASHION TURN TOWARDS</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 w-full items-stretch justify-center">
         {news.map((n, i) => (
-          <div key={i} className="w-full max-w-[96vw] mx-auto md:max-w-none md:mx-0 rounded-2xl bg-[#f5f5f0] shadow-lg p-4 sm:p-5 flex flex-col transition-transform duration-300 hover:scale-105 h-full animate-fade-in-up" style={{ animationDelay: `${i * 0.1}s` }}>
+          <div key={i} className="w-[90vw] max-w-xs mx-auto sm:w-full sm:max-w-none sm:mx-0 rounded-2xl bg-[#f5f5f0] shadow-lg p-4 sm:p-5 flex flex-col transition-transform duration-300 hover:scale-105 h-full animate-fade-in-up" style={{ animationDelay: `${i * 0.1}s` }}>
             <div className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 border-2 border-[#e5e5e5] shadow-md transition-all duration-300 bg-[#f5f5f0] flex items-center justify-center">
-              <img src={n.img} alt={n.title} loading="lazy" className="object-cover w-full h-full" />
+              <img src={n.img} alt={n.title} loading="lazy" className="object-cover w-full h-full" onError={() => console.error('News image failed to load:', n.img)} />
             </div>
             <span className="text-xs text-gray-500 mb-1">{n.date}</span>
             <h3 className="text-base sm:text-lg md:text-xl font-serif font-bold text-gray-900 mb-1">{n.title}</h3>
             <p className="text-gray-700 text-xs sm:text-sm md:text-base mb-2">{n.desc}</p>
-            <button className="mt-auto px-5 py-2 rounded-full bg-green-700 text-white font-semibold shadow hover:bg-green-800 transition text-sm w-max mx-auto font-grotesk">Read More</button>
+            <Link to="/does-not-exist" className="mt-auto px-5 py-2 rounded-full bg-green-700 text-white font-semibold shadow hover:bg-green-800 transition text-sm w-max mx-auto font-grotesk text-center block">Read More</Link>
           </div>
         ))}
       </div>
@@ -857,15 +887,15 @@ function NewsSection() {
 // FeatureBanner: Highlighted feature/collection section
 function FeatureBanner() {
   return (
-    <section className="w-[97.5%] mx-auto bg-[#2d3a2e] py-6 sm:py-12 px-4 sm:px-8 flex flex-col md:flex-row items-center gap-6 sm:gap-8 rounded-2xl my-10 font-grotesk">
+    <section className="w-[90vw] max-w-xs mx-auto sm:w-[97.5%] sm:max-w-none sm:mx-auto bg-[#2d3a2e] py-6 sm:py-12 px-4 sm:px-8 flex flex-col md:flex-row items-center gap-6 sm:gap-8 rounded-2xl my-10 font-grotesk">
       <div className="flex-1 flex flex-col gap-4 items-center text-center md:items-start md:text-left">
-        <h2 className="text-3xl md:text-4xl font-serif font-black text-white mb-2">ELEGANCE IN EVERY THREAD</h2>
+        <h2 className="text-2xl ml-3 sm:ml-0 md:text-4xl font-serif font-black text-white mb-2">ELEGANCE IN EVERY THREAD</h2>
         <p className="text-lg text-white/80 max-w-lg mb-4 font-sans">Especially suitable for a brand or collection that focuses on intricate details, quality, and a timeless sense of style.</p>
         <span className="bg-yellow-300 text-yellow-900 px-4 py-1 rounded-full font-bold text-xs shadow animate-wiggle w-max font-grotesk">NEW DROP</span>
       </div>
       <div className="flex-1 flex items-center justify-center">
         <div className="w-48 h-48 sm:w-72 sm:h-72 rounded-2xl overflow-hidden shadow-lg mx-auto">
-          <img src={featureImg} alt="Elegance" loading="lazy" className="object-cover w-full h-full" />
+          <img src={featureImg} alt="Elegance" loading="lazy" className="object-cover w-full h-full" onError={() => console.error('Feature image failed to load:', featureImg)} />
         </div>
       </div>
     </section>
@@ -970,17 +1000,19 @@ function normalizeProduct(product) {
   // Extract numeric price from string if needed
   let price = product.price;
   if (typeof price === 'string') {
-    // Remove currency symbols and commas, then parse
     price = parseFloat(price.replace(/[^\d.]/g, ''));
-    if (isNaN(price)) price = 0;
   }
+  price = Number(price);
+  if (isNaN(price)) price = 0;
+  let quantity = Number(product.quantity);
+  if (isNaN(quantity) || quantity < 1) quantity = 1;
   return {
     id: product.id ?? product.name ?? Math.random().toString(36).slice(2),
     name: product.name || 'Unknown Product',
     img: product.img || '',
     price,
     size: product.size || '',
-    quantity: product.quantity || 1,
+    quantity,
     // Add any other fields you want to persist
   };
 }
@@ -995,7 +1027,8 @@ export default function App() {
   const [cart, setCart] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('cart')) || [];
-    } catch {
+    } catch (e) {
+      console.error('Error parsing cart from localStorage:', e);
       return [];
     }
   });
@@ -1004,23 +1037,53 @@ export default function App() {
   const [drawerProduct, setDrawerProduct] = useState(null);
   const [checkoutDrawerOpen, setCheckoutDrawerOpen] = useState(false);
   const [warning, setWarning] = useState("");
+  // Track FloatingCardMenu open state for scroll lock
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [globalError, setGlobalError] = useState(null);
+  const [showSlowLoader, setShowSlowLoader] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [showOnlineMsg, setShowOnlineMsg] = useState(false);
+  const [showTimeoutError, setShowTimeoutError] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Disable body scroll when any modal is open
+  useEffect(() => {
+    const modalOpen = drawerOpen || checkoutDrawerOpen || menuOpen;
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen, checkoutDrawerOpen, menuOpen]);
+
   // Add to cart handler: only works if logged in
   const handleAddToCart = (product) => {
     const normalized = normalizeProduct(product);
     if (!normalized) return;
+    let price = normalized.price;
+    if (isNaN(price)) {
+      console.warn('Attempted to add product with invalid price:', product);
+      price = 0;
+    }
     setCart((prev) => {
-      const idx = prev.findIndex((p) => p.id === normalized.id);
+      // New user discount: if cart is empty, apply 10% off
+      if (prev.length === 0) {
+        price = Math.round(price * 0.9 * 100) / 100; // 10% off, rounded to 2 decimals
+      }
+      // Only consider an item 'already in cart' if both id and size match
+      const idx = prev.findIndex((p) => p.id === normalized.id && p.size === normalized.size);
       if (idx !== -1) {
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], quantity: (updated[idx].quantity || 1) + 1 };
+        updated[idx] = { ...updated[idx], quantity: Number(updated[idx].quantity || 1) + Number(normalized.quantity || 1) };
         return updated;
       }
-      return [...prev, { ...normalized, quantity: 1 }];
+      return [...prev, { ...normalized, price, quantity: Number(normalized.quantity || 1) }];
     });
   };
 
@@ -1057,78 +1120,193 @@ export default function App() {
     setDrawerOpen(true);
   };
 
+  useEffect(() => {
+    // Network Information API (not supported everywhere)
+    function checkConnection() {
+      if (navigator.connection) {
+        const { effectiveType, downlink } = navigator.connection;
+        // Consider '2g', 'slow-2g', or very low downlink as slow
+        if (effectiveType === '2g' || effectiveType === 'slow-2g' || downlink < 0.5) {
+          setShowSlowLoader(true);
+        } else {
+          setShowSlowLoader(false);
+        }
+      }
+    }
+    // Initial check
+    checkConnection();
+    // Listen for changes
+    if (navigator.connection) {
+      navigator.connection.addEventListener('change', checkConnection);
+      return () => navigator.connection.removeEventListener('change', checkConnection);
+    }
+    // Fallback: if page takes >5s to load, show loader
+    const timer = setTimeout(() => setShowSlowLoader(true), 5000);
+    window.addEventListener('load', () => clearTimeout(timer));
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    function handleOnline() {
+      setIsOffline(false);
+      setShowOnlineMsg(true);
+      setTimeout(() => {
+        setShowOnlineMsg(false);
+        // Do NOT reload the site
+      }, 1500);
+    }
+    function handleOffline() { setIsOffline(true); }
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // --- Reload Timeout Logic ---
+  useEffect(() => {
+    // Get reload timestamps from localStorage
+    const now = Date.now();
+    let reloads = [];
+    try {
+      reloads = JSON.parse(localStorage.getItem('reloadTimestamps') || '[]');
+    } catch { reloads = []; }
+    // Add current reload
+    reloads.push(now);
+    // Keep only last 10 reloads
+    reloads = reloads.slice(-10);
+    // Save back
+    localStorage.setItem('reloadTimestamps', JSON.stringify(reloads));
+    // Check if more than 10 reloads in last 5s
+    const recent = reloads.filter(ts => now - ts < 5000);
+    if (recent.length > 10) {
+      setShowTimeoutError(true);
+      // Block further reloads for 30s
+      localStorage.setItem('reloadTimeoutUntil', String(now + 30000));
+    }
+  }, []);
+
+  // On mount, check if timeout is still active
+  useEffect(() => {
+    const timeoutUntil = Number(localStorage.getItem('reloadTimeoutUntil'));
+    if (timeoutUntil && Date.now() < timeoutUntil) {
+      setShowTimeoutError(true);
+    }
+  }, []);
+
+  // Handler for when countdown ends
+  const handleTimeoutEnd = () => {
+    setShowTimeoutError(false);
+    localStorage.removeItem('reloadTimeoutUntil');
+    // Optionally clear reloadTimestamps
+    localStorage.setItem('reloadTimestamps', '[]');
+  };
+
+  if (showTimeoutError) {
+    return <ReloadTimeoutErrorPage onCountdownEnd={handleTimeoutEnd} />;
+  }
+
+  if (isOffline) {
+    return <OfflineErrorPopup />;
+  }
+  if (showSlowLoader) {
+    return <SlowConnectionLoader />;
+  }
+  // Show 'You are live again!' overlay if needed
   return (
-    <ErrorBoundary>
-      <>
-        <Routes>
-          <Route path="/" element={
-            <div className="min-h-screen bg-[#f5f5f0] font-sans scroll-smooth">
-              {/* Navbar: Main navigation bar */}
-              <Navbar onScrollToCollection={handleScrollToCollection} cartCount={cart.length} onCart={handleCart} />
-              {/* Main content container, always below fixed header/banner */}
-              <div className="w-full xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto mt-[3rem]">
-                {/* EditorialHero: Hero section with animated carousel and headline */}
-                <EditorialHero />
-                {/* SectionDivider: Animated divider for editorial style */}
-                <SectionDivider />
-                {/* EditorialStory: Brand story/mission section */}
-                <EditorialStory />
-                {/* CollectionGrid: Product grid with responsive layout and tilt/hover effects */}
-                <div ref={collectionGridRef}>
-                  <CollectionGrid
-                    isLoggedIn={false}
-                    selectedProduct={selectedProduct}
-                    setSelectedProduct={setSelectedProduct}
-                    highlight={highlight}
-                    onAddToCart={handleAddToCartWithCheck}
-                    onProductClick={handleProductClick}
-                    onCart={handleCart}
-                  />
-                </div>
-                {/* NewsSection: Editorial/news/blog cards */}
-                <NewsSection />
-                {/* FeatureBanner: Highlighted feature/collection section */}
-                <FeatureBanner />
-                {/* Footer: Site footer with links, social, and newsletter */}
-                <Footer />
-              </div>
-              <ProductDrawer
-                open={drawerOpen}
-                product={drawerProduct}
-                onClose={() => setDrawerOpen(false)}
-                onAddToCart={handleAddToCartWithCheck}
-                onAddToCartAndCheckout={() => {
-                  setDrawerOpen(false);
-                  setCheckoutDrawerOpen(true);
-                }}
-              />
-            </div>
-          } />
-          <Route path="/ShopByCollection" element={<ShopByCollection onAddToCart={handleAddToCartWithCheck} cartCount={cart.length} cart={cart} onProductClick={handleProductClick} onCart={handleCart} />} />
-          <Route path="/Trending" element={<Trending onCart={handleCart} cartCount={cart.length} onAddToCart={handleAddToCartWithCheck} />} />
-          {/* Error test routes */}
-          <Route path="/error/403" element={<ErrorPageLayout statusCode={403} />} />
-          <Route path="/error/500" element={<ErrorPageLayout statusCode={500} />} />
-          <Route path="/error/503" element={<ErrorPageLayout statusCode={503} />} />
-          <Route path="/error/401" element={<ErrorPageLayout statusCode={401} />} />
-          <Route path="/error/502" element={<ErrorPageLayout statusCode={502} />} />
-          <Route path="/error/504" element={<ErrorPageLayout statusCode={504} />} />
-          {/* Catch-all 404 */}
-          <Route path="*" element={<ErrorPageLayout statusCode={404} />} />
-        </Routes>
-        <CheckoutDrawer
-          open={checkoutDrawerOpen}
-          cart={cart}
-          setCart={setCart}
-          onClose={() => setCheckoutDrawerOpen(false)}
-          bgColor="#e5e7eb"
-        />
-        {warning && (
-          <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-yellow-400 text-black px-6 py-3 rounded-full shadow-lg z-[9999] font-bold animate-fade-in-up">
-            {warning}
+    <>
+      {showOnlineMsg && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/30 pointer-events-none select-none">
+          <div className="bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-xl shadow-lg text-lg sm:text-xl font-bold animate-fade-in-up">
+            You are live again!
           </div>
-        )}
-      </>
-    </ErrorBoundary>
+        </div>
+      )}
+      <ErrorBoundary>
+        <>
+          <Routes>
+            <Route path="/" element={
+              <div className="min-h-screen bg-[#f5f5f0] font-sans scroll-smooth overflow-x-hidden">
+                {/* Navbar: Main navigation bar */}
+                <Navbar onScrollToCollection={handleScrollToCollection} cartCount={cart.length} onCart={handleCart} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+                {/* Main content container, always below fixed header/banner */}
+                <main className="mt-4 md:mt-12 lg:mt-16 w-full xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto">
+                  {/* EditorialHero: Hero section with animated carousel and headline */}
+                  <EditorialHero />
+                  {/* SectionDivider: Animated divider for editorial style */}
+                  <SectionDivider />
+                  {/* EditorialStory: Brand story/mission section */}
+                  <EditorialStory />
+                  {/* CollectionGrid: Product grid with responsive layout and tilt/hover effects */}
+                  <div ref={collectionGridRef}>
+                    <CollectionGrid
+                      isLoggedIn={false}
+                      selectedProduct={selectedProduct}
+                      setSelectedProduct={setSelectedProduct}
+                      highlight={highlight}
+                      onAddToCart={handleAddToCart}
+                      onProductClick={handleProductClick}
+                      onCart={handleCart}
+                    />
+                  </div>
+                  {/* NewsSection: Editorial/news/blog cards */}
+                  <NewsSection />
+                  {/* FeatureBanner: Highlighted feature/collection section */}
+                  <FeatureBanner />
+                  {/* Footer: Site footer with links, social, and newsletter */}
+                  <Footer />
+                </main>
+                <ProductDrawer
+                  open={drawerOpen}
+                  product={drawerProduct}
+                  onClose={() => setDrawerOpen(false)}
+                  onAddToCart={handleAddToCart}
+                  onAddToCartAndCheckout={() => {
+                    setDrawerOpen(false);
+                    setCheckoutDrawerOpen(true);
+                  }}
+                  setGlobalError={setGlobalError}
+                />
+              </div>
+            } />
+            <Route path="/ShopByCollection" element={<ShopByCollection onAddToCart={handleAddToCart} cartCount={cart.length} cart={cart} onProductClick={handleProductClick} onCart={handleCart} setGlobalError={setGlobalError} />} />
+            <Route path="/Trending" element={<Trending onCart={handleCart} cartCount={cart.length} onAddToCart={handleAddToCart} setGlobalError={setGlobalError} />} />
+            {/* Error test routes */}
+            {/* <Route path="/error/403" element={<ErrorPageLayout statusCode={403} />} />
+            <Route path="/error/500" element={<ErrorPageLayout statusCode={500} />} />
+            <Route path="/error/503" element={<ErrorPageLayout statusCode={503} />} />
+            <Route path="/error/401" element={<ErrorPageLayout statusCode={401} />} />
+            <Route path="/error/502" element={<ErrorPageLayout statusCode={502} />} />
+            <Route path="/error/504" element={<ErrorPageLayout statusCode={504} />} /> */}
+            {/* Catch-all 404 */}
+            <Route path="*" element={<ErrorPageLayout statusCode={404} />} />
+          </Routes>
+          <CheckoutDrawer
+            open={checkoutDrawerOpen}
+            cart={cart}
+            setCart={setCart}
+            onClose={() => setCheckoutDrawerOpen(false)}
+            bgColor="#e5e7eb"
+          />
+          {warning && (
+            <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-yellow-400 text-black px-6 py-3 rounded-full shadow-lg z-[9999] font-bold animate-fade-in-up">
+              {warning}
+            </div>
+          )}
+          {/* Add global CSS to hide scrollbars except in modals */}
+          <style>{`
+            html, body {
+              scrollbar-width: none; /* Firefox */
+              -ms-overflow-style: none; /* IE 10+ */
+            }
+            html::-webkit-scrollbar, body::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <CookieConsent />
+        </>
+      </ErrorBoundary>
+    </>
   );
 }

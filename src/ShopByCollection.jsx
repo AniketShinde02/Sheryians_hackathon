@@ -119,23 +119,22 @@ const CollectionCard = ({ collection, onSelect }) => {
   const { name, img } = collection;
   return (
     <motion.div
-      onClick={onSelect}
       variants={cardVariants}
-      whileHover={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.10)' }}
-      className="bg-[#2F3D3D] rounded-2xl shadow-lg p-0 flex flex-col group transition-all duration-200 border border-[#e5e5e5] overflow-hidden cursor-pointer w-[90vw] max-w-xs mx-auto mb-3"
+      className="w-full max-w-xs mx-auto rounded-2xl bg-[#2F3D3D] shadow-lg p-2 sm:p-3 flex flex-col group transition-all duration-200 border border-[#e5e5e5] overflow-hidden cursor-pointer mb-3"
+      onClick={onSelect}
     >
       <div className="w-full aspect-[4/5] bg-[#3A4A4A] flex items-center justify-center overflow-hidden">
         <img
-          src={img || fallbackImg}
+          src={img}
           alt={name}
           className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+          draggable={false}
         />
       </div>
       <div className="flex flex-col flex-grow justify-between p-2 sm:p-3 md:p-4">
         <h3 className="text-base sm:text-lg md:text-xl font-serif font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300 truncate">{name}</h3>
         <div className="mt-auto flex items-center justify-center gap-2 px-2 sm:px-3 py-2 rounded-full bg-orange-300 text-gray-900 font-semibold shadow text-xs sm:text-sm md:text-base w-full group-hover:shadow-lg group-hover:scale-105">
-          <span>View Collection</span>
-          <ArrowRight className="w-4 h-4" />
+          <span>View Details</span>
         </div>
       </div>
     </motion.div>
@@ -154,7 +153,7 @@ const ProductImage = ({ src, alt }) => {
         alt={alt}
         className={`object-cover w-full h-full transition-transform duration-300 group-hover:scale-110 ${loaded ? '' : 'hidden'}`}
         onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
+        onError={() => { setError(true); console.error('Image failed to load:', src); }}
       />
     </div>
   );
@@ -162,21 +161,49 @@ const ProductImage = ({ src, alt }) => {
 
 // Fix add to cart and modal logic: use App's onAddToCart and onProductClick
 // Remove local cart logic, rely on props
-const ProductCard = ({ product, onProductClick }) => {
+const ProductCard = ({ product, onProductClick, setGlobalError }) => {
+  const [imgError, setImgError] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState("");
+  const handleImageError = () => {
+    setImgError(true);
+    setError("Failed to load product image.");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+  const handleAddToCart = () => {
+    try {
+      onProductClick(product);
+    } catch (e) {
+      console.error('Error in handleAddToCart (ProductCard):', e);
+      if (setGlobalError) setGlobalError(e);
+      setError("Failed to add to cart. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    }
+  };
   return (
     <motion.div
       variants={cardVariants}
-      className="w-full rounded-2xl bg-[#2F3D3D] shadow-lg p-2 sm:p-3 md:p-4 flex flex-col group text-center"
+      className="w-full max-w-xs mx-auto rounded-2xl bg-[#232b24] shadow-lg p-2 sm:p-3 flex flex-col group text-center mb-3"
     >
-      <ProductImage src={product.img} alt={product.name} />
+      <div className="w-full aspect-[4/5] bg-[#3A4A4A] flex items-center justify-center overflow-hidden rounded-xl mb-2">
+        <img src={imgError ? fallbackImg : product.img} alt={product.name} className="object-cover w-full h-full" onError={() => { handleImageError(); console.error('Product image failed to load:', product.img); }} />
+      </div>
       <h4 className="text-base sm:text-lg md:text-xl font-serif font-bold text-white mb-1 group-hover:text-orange-300 transition-colors duration-300">{product.name}</h4>
       <p className="text-orange-300 font-bold text-xs sm:text-base md:text-lg mb-2">{product.price}</p>
       <button
-        onClick={() => onProductClick(product)}
+        onClick={handleAddToCart}
         className="mt-auto px-4 py-2 rounded-full font-semibold shadow transition-all text-xs sm:text-sm md:text-base w-full group-hover:shadow-lg group-hover:scale-105 bg-yellow-300 text-yellow-900 font-bold"
       >
         Add to Cart
       </button>
+      {/* Error Toast */}
+      {showToast && error && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg z-[9999] font-bold animate-fade-in-up">
+          {error}
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -204,7 +231,7 @@ const CollectionModal = ({ collection, onClose, onProductClick }) => {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="relative w-[95vw] max-w-xs sm:max-w-2xl md:max-w-5xl h-[90vh] bg-[#2F3D3D] rounded-2xl shadow-2xl flex flex-col mx-auto"
+          className="relative w-[95vw] max-w-xs sm:max-w-2xl md:max-w-5xl max-h-[80vh] bg-[#2F3D3D] rounded-2xl shadow-2xl flex flex-col mx-auto overflow-y-auto overflow-x-hidden"
           onClick={e => e.stopPropagation()}
         >
           <div className="p-3 sm:p-4 md:p-6 border-b border-white/10 flex justify-between items-center">
@@ -217,11 +244,13 @@ const CollectionModal = ({ collection, onClose, onProductClick }) => {
             variants={modalGridVariants}
             initial="hidden"
             animate="visible"
-            className="flex-grow p-2 sm:p-3 md:p-6 overflow-y-auto"
+            className="flex-grow p-2 sm:p-3 md:p-6 overflow-y-auto overflow-x-hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
               {collection.products.map(p => (
-                <ProductCard key={p.id} product={p} onProductClick={onProductClick} />
+                <div className="w-full max-w-xs mx-auto" key={p.id}>
+                  <ProductCard product={p} onProductClick={onProductClick} />
+                </div>
               ))}
             </div>
           </motion.div>
@@ -277,7 +306,7 @@ export default function ShopByCollectionInteractive({ onAddToCart, cartCount, ca
   return (
     <ErrorBoundary>
       <div className="min-h-screen w-full bg-[#F7F7F2] text-gray-800 antialiased font-sans">
-        <header className="p-4 sm:p-5 md:px-8 flex flex-row justify-between items-center">
+        <header className="p-4 sm:p-5 md:px-10 lg:px-16 xl:px-24 flex flex-row justify-between items-center">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-7 h-7 text-gray-800" />
             <span className="text-xl font-bold text-gray-800 font-grotesk tracking-wider">OVERLAYS</span>
@@ -291,7 +320,7 @@ export default function ShopByCollectionInteractive({ onAddToCart, cartCount, ca
           variants={pageVariants}
           initial="hidden"
           animate="visible"
-          className="px-2 sm:px-4 md:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8"
+          className="px-2 sm:px-4 md:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 mt-6 sm:mt-8 lg:-mt-6"
         >
           <motion.div
             variants={cardVariants}
@@ -307,7 +336,6 @@ export default function ShopByCollectionInteractive({ onAddToCart, cartCount, ca
             initial="hidden"
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 w-full max-w-7xl mx-auto items-stretch"
-            style={{ minHeight: '50vh' }}
           >
             {collectionsData.map(c => (
               <CollectionCard key={c.id} collection={c} onSelect={() => setSelectedCollection(c)} />
@@ -324,7 +352,11 @@ export default function ShopByCollectionInteractive({ onAddToCart, cartCount, ca
           open={drawerOpen}
           product={drawerProduct}
           onClose={() => setDrawerOpen(false)}
-          onAddToCart={handleAddToCartWithToast}
+          onAddToCart={(product) => {
+            if (onAddToCart) onAddToCart(product);
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 1000);
+          }}
           onAddToCartAndCheckout={() => {
             setDrawerOpen(false);
             if (typeof onCart === 'function') onCart();

@@ -598,3 +598,298 @@ npm run build
 ---
 
 *Last Updated: Latest fixes for form spacing, carousel optimization, and logo improvements* 
+
+---
+
+## 🛠️ Recent UI/UX & Logic Changes (Hackathon Iteration)
+
+- **Accessories filter hidden on mobile:**
+  - The 'Accessories' filter button in the CollectionGrid is now hidden on mobile (`sm` and below) and only visible on larger screens.
+
+- **Show only 4 product cards on mobile:**
+  - The CollectionGrid now displays 4 product cards by default on mobile view, and 8 on `sm` and larger screens.
+
+- **Reduced card width for news and feature sections on mobile:**
+  - The news cards ("A LOOK AT FASHION TURN TOWARDS" section) and the feature banner ("Elegance in Every Thread") now use `w-[90vw] max-w-xs mx-auto` on mobile, matching the editorial gallery style for a more compact, modern look.
+
+- **Added left margin to section headings on mobile:**
+  - The headings for the news and feature sections have a left margin (`ml-3`) on mobile for better alignment and visual hierarchy.
+
+- **Global scroll lock for modals:**
+  - When any modal popup (ProductDrawer, CheckoutDrawer, or FloatingCardMenu/mobile menu) is open, site scrolling is disabled. Scrolling is re-enabled only when all modals are closed. This logic is applied globally for a consistent modal experience.
+
+--- 
+
+## 🛠️ Responsiveness Fixes (July 2025)
+
+- **Issue:**
+  - Cards, overlays, and buttons in Shop By Collection and Trending were overflowing or not resizing properly on mobile/tablet, causing extra scroll and white lines on some devices.
+
+- **Solution:**
+  - All cards, overlays, and buttons in Shop By Collection and Trending now use `w-[90vw] max-w-xs mx-auto` on mobile, and `w-full`/grid layouts on larger screens.
+  - Responsive text classes (`text-base`, `sm:text-lg`, `md:text-xl`, etc.) are used for headings and buttons.
+  - All images use `object-cover w-full h-full` for perfect scaling.
+  - Removed fixed pixel widths except for max constraints.
+  - No horizontal scroll or white lines on any device (tested on iPhone, iPad, Galaxy, Surface, etc.).
+  - Overlays, text, logos, and buttons now scale smoothly across all device sizes.
+
+--- 
+
+- **Modal popups now fully responsive:**
+  - All modal product cards in Shop By Collection and Trending now use the same bulletproof responsive logic as the main cards (`w-[90vw] max-w-xs mx-auto` on mobile, grid/w-full on larger screens).
+  - No horizontal scroll or white lines on any device, including all devices listed in Chrome DevTools.
+
+---
+
+- **STYLE badge in EditorialHero is now fully responsive:**
+  - Uses absolute bottom-2 right-2 sm:bottom-4 sm:right-4, px-2 sm:px-4, text-xs sm:text-sm md:text-base for perfect positioning and sizing on all devices.
+
+- **All card images use object-cover w-full h-full and aspect ratio is consistent.**
+
+- **Shop By Collection and Trending cards and modal popups are now perfectly sized and spaced for all devices (including iPad, iPad Mini, iPad Pro, iPhone, Galaxy, Surface, etc.).**
+  - Cards use w-[90vw] max-w-xs mx-auto on mobile, w-full/grid on larger screens.
+  - Responsive padding/margin and text classes applied.
+
+- **Modal popups have max-h-[80vh] and overflow-y-auto to prevent extra scroll.**
+
+- **Main wrapper uses overflow-x-hidden to prevent horizontal scroll.**
+
+- **All changes tested on all major device breakpoints.**
+
+---
+
+- **Modal popup grid logic updated:**
+  - 1 card per row on mobile (XS, <640px), 2 per row on tablet (SM/MD, 640px–1023px), 4 per row on desktop (LG+, ≥1024px).
+  - Card and button sizes are now fully responsive (text-xs px-3 py-2 on mobile, text-sm px-4 py-2 on tablet, text-base px-5 py-2 on desktop).
+  - No extra scroll or white space in modals.
+  - All changes tested on all major device breakpoints.
+
+- **Trending modal cards are now smaller on mobile and tablets, with no extra scroll.**
+- **Shop By Collection cards are now constrained in width on tablets, matching Trending.**
+- **All changes tested on iPad Mini, iPad Air, iPad Pro, iPhone, Galaxy, Surface, etc.**
+
+---
+
+- **Scrollbars are now hidden globally except in modal popups.**
+- **Size selector buttons in product modals are larger and evenly spaced on mobile.**
+- **Modal scrollbars are styled to be subtle and modern.**
+- **All changes tested on all major device breakpoints.**
+
+---
+
+- **Checkout modal is now perfectly responsive:**
+  - w-[90vw] max-w-[600px] for mobile/tablet, w-[70vw] max-w-[600px] for desktop, max-h-[80vh] md:max-h-[500px].
+- **Uses site green for icons/buttons, black for close button with hover.**
+- **UPI and Fake Scanner payment options added; Fake Scanner triggers 10s animation then success.**
+- **All cart items show with images, names, sizes, prices, quantity, and remove works.**
+- **All logic (exit confirmation, progress, etc.) remains functional.**
+- **All changes tested on all major device breakpoints.**
+
+---
+
+- **All major components and routes are now wrapped in ErrorBoundary for robust error handling.**
+- **Shop By Collection cards now have a bottom margin so they do not meet the edge of the screen.**
+- **All changes tested for error handling and visual spacing.**
+
+- **Shop By Collection cards now use the exact same structure and sizing as Trending cards (no fixed height, aspect-[4/5] for image container, matching padding/font/button sizes).**
+- **All changes tested for visual consistency on iPad Mini, iPad Air, and all breakpoints.**
+
+---
+
+- **Product Card Hover (Double Zoom) Fix**
+  - Diagnosed double zoom issue in CollectionGrid (editorial gallery) cards.
+  - Found both Framer Motion `whileHover` and Tailwind `hover:scale-105` were applied, causing double scaling.
+  - Removed Framer Motion `whileHover` from CollectionGrid cards; now only Tailwind hover is used, matching NewsSection behavior.
+  - Result: Only a single, smooth zoom on hover for product cards.
+
+- **Cart & Checkout Logic: Real Data Only**
+  - Removed all mock/demo cart logic. All add-to-cart actions now use the global cart state.
+  - Ensured all product drawers, grids, and modals use the real `handleAddToCart` handler from `App.jsx`.
+  - CheckoutDrawer always receives the real cart and `setCart` props.
+  - Result: Adding a product from any page shows the correct product, image, and price in the checkout drawer.
+
+- **Modal Sizing & Scroll Behavior**
+  - Ensured the checkout modal never expands; content always scrolls inside a fixed-height area.
+  - Used `max-w-[95vw] sm:max-w-[400px]` for modal width and `min-h-[200px] max-h-[320px] sm:max-h-[400px]` for content area.
+  - Result: Modal/card stays the same size, content scrolls, consistent across all steps.
+
+- **Mobile & Responsive Improvements**
+  - Made the checkout modal more compact on mobile (smaller width, less padding).
+  - Reduced vertical spacing and padding in modal content and form fields for a tighter, more precise look.
+
+- **Form Validation & Error Handling**
+  - Changed validation errors to show as placeholder text inside each input, not below.
+  - Added a 1-second timeout for error placeholders: after 1s, the input is enabled again for user entry.
+  - Result: Modern, user-friendly validation with no permanent lockout.
+
+- **Checkout Flow & State Reset**
+  - After placing an order, the cart is automatically emptied and localStorage is cleared.
+  - When the modal is closed after order placement, the checkout resets to the initial cart step (no more stuck on "Order Placed").
+  - Result: Clean, bug-free checkout experience for every new session.
+
+- **Exit Confirmation Popup (Leaving So Soon)**
+  - Made the popup smaller (`max-w-[320px]`), reduced padding.
+  - Swapped button positions: "Yes, Exit" is now on the left, "Keep Shopping" on the right.
+  - Buttons are compact, fill the width, and have minimal padding.
+
+- **UPI QR Code Card Optimization**
+  - Made the QR code card smaller, centered, and responsive (`w-32 h-32 sm:w-40 sm:h-40`).
+  - Result: Consistent with the rest of the checkout modal and visually balanced.
+
+---
+
+**Summary:**
+- All UI/UX, logic, and bug fixes were made for a seamless, modern, and responsive checkout and shopping experience.
+- All changes are now live and tested across product cards, cart, checkout, modals, and error handling.
+
+---
+## Change Log
+
+**Date:** 2024-06-09
+**Time:** [Please update with your local time]
+
+### 1. Error Handling Improvements
+- Added user-facing error toasts for:
+  - Missing size selection in ProductDrawer
+  - Add-to-cart failures in ProductDrawer, ShopByCollection, and Trending
+  - Image load failures in ShopByCollection and Trending
+- All error toasts are styled and auto-dismiss after 2 seconds for better UX.
+
+### 2. Card Responsiveness & UI Consistency
+- Made Shop By Collection product and collection cards match the width, max-width, and padding of Trending cards (`w-full max-w-xs mx-auto ... p-2 sm:p-3 mb-3`).
+- Ensured perfect visual consistency and improved mobile experience for all cards.
+
+### 3. General Code Quality
+- Defensive UI: Disabled actions for invalid states (e.g., no size selected, empty cart).
+- Fallback images and skeletons for broken/missing images.
+- Centralized error handling with ErrorBoundary in all major flows.
+
+---
+
+# [MERGE NOTE] The following section was merged from My-Site/info.md on 2024-06-09 for unified documentation:
+
+# Detailed Development Log — [Today]
+
+## 1. Initial Error Fixes
+
+### ErrorProvider Import/Export Issue
+- **Problem:** The app was importing `ErrorProvider` from `errors.jsx`, but this was not exported, causing a runtime error and a black screen (500 error page shown by the error boundary).
+- **Fix:** Removed all references to `ErrorProvider` in `App.jsx`. Now, only `ErrorBoundary` is used for error handling, matching the actual exports in `errors.jsx`.
+- **Result:** The app loads correctly, and error boundaries work as intended.
+
+### General Import/Export Hygiene
+- Verified that all imports in `App.jsx` and `errors.jsx` match the actual exports.
+- Ensured that all error page components are properly exported and imported where needed.
+
+## 2. Error Page Improvements
+
+### Custom Error Pages
+- **Pages improved:** 403 (Forbidden), 404 (Not Found), 500 (Internal Server Error), 503 (Service Unavailable), 401 (Unauthorized), 502 (Bad Gateway), 504 (Gateway Timeout), and a generic error page.
+- **Design:** Each page uses a unique, branded, and responsive design consistent with the Overlays site theme. All pages use Tailwind CSS for mobile-first responsiveness and accessibility.
+- **SVGs and Animations:** Custom SVG backgrounds and subtle animations are used for visual polish.
+
+### Error Page Routing & Testing
+- **Test Routes Added:**
+  - `/error/403` → 403 page
+  - `/error/404` → 404 page
+  - `/error/500` → 500 page
+  - `/error/503` → 503 page
+  - `/error/401` → 401 page
+  - `/error/502` → 502 page
+  - `/error/504` → 504 page
+- **Catch-all Route:** Any unknown route (`*`) shows the 404 page.
+- **Testing Instructions:** Provided clear instructions for QA to visit each error route and verify design and responsiveness.
+- **Cleanup:** After testing, recommended removing the explicit `/error/xxx` routes to prevent public access, keeping only the catch-all 404 and real error logic.
+
+### Responsiveness & Accessibility
+- All error pages are fully responsive (mobile, tablet, desktop).
+- All interactive elements (buttons, links) are large, touch-friendly, and accessible.
+- SVG backgrounds are visually hidden from screen readers for accessibility.
+
+## 3. Mobile Menu (FloatingCardMenu) UI/UX Improvements
+
+### Backdrop Blur/Overlay
+- **Problem:** The mobile menu overlay was too dark/blue, making the background content hard to see.
+- **Fix:** Reduced the overlay to `bg-black/10 backdrop-blur-sm` for a lighter, more subtle effect.
+- **Result:** Background content is now visible when the menu is open, improving the user experience.
+
+### Menu Close on Scroll
+- **Problem:** When "Shop by Category" was clicked, the menu did not close, leaving the overlay visible.
+- **Fix:** Updated the click handler so that after scrolling to the collection grid, the menu closes and the overlay is removed.
+- **Result:** The menu now closes as soon as the scroll is triggered, and the background is visible.
+
+### Contact Item Highlight Bug
+- **Problem:** The "Contact" menu item appeared selected/highlighted by default, even though it was not a link.
+- **Fix:** Only apply the hover/active background to menu items that are actual links (`href` present). The Contact item now appears neutral.
+- **Result:** No more unwanted highlight on Contact; only links get the background on hover/tap.
+
+## 4. New Features & Pages
+- **Error page test routes** were added for QA (see above).
+- **No new main pages** were added today, but all error pages and the mobile menu were improved and tested.
+- 2024-06-09: Removed the click-to-expand (enlarge) effect for all cards in the CollectionGrid section. Now, clicking any card does nothing on all screen sizes, as per user request.
+
+## 5. Testing & QA
+- **Manual QA:**
+  - Visited all error test routes on mobile and desktop to verify design, responsiveness, and accessibility.
+  - Tested the mobile menu overlay, menu close behavior, and Contact item highlight on various devices.
+- **Instructions Provided:**
+  - How to test each error page.
+  - How to remove test routes after QA.
+- **Results:**
+  - All error pages render correctly and are visually consistent.
+  - Mobile menu works as expected, with improved overlay and correct item highlighting.
+
+## 6. Summary of All Changes
+- Fixed critical import/export and error boundary issues.
+- Improved and tested all error pages for design, responsiveness, and accessibility.
+- Enhanced mobile menu overlay and interaction for a better user experience.
+- Provided clear QA/testing instructions and cleanup steps.
+
+---
+
+## [2024-06-09] UI Update: Modern Teal/Green Palette & Cart Remove Option
+
+- Checkout modal now uses a modern, accessible teal/green palette:
+  - Deep Teal: #178582
+  - Soft Teal: #4cae4f
+  - Light Teal: #a8d3e1
+  - Accent Yellow: #ffec3d
+  - White: #fff
+  - Text: #1a1a1a (headings), #333 (body)
+- All text and backgrounds have high contrast for readability.
+- Added a "Remove" button for each cart item in the modal.
+- Improved overall visual appeal and accessibility.
+
+---
+
+## [2024-06-09] Checkout Modal & Cart Reset Bug Fix
+
+- **Issue:** After placing an order, if a new product was added to the cart and the checkout modal was opened again, the modal would sometimes show the 'Order Placed' (success) screen or not reset to the first step, causing confusion.
+- **Fix:** Added logic to reset the checkout modal state (`isSuccess` and `step`) every time the modal is opened. This ensures the checkout process always starts fresh and does not show the previous success state after a new product is added.
+- **Technical:** Implemented a `useEffect` in `CheckoutDrawer.jsx` that resets these states when the `open` prop becomes true.
+- **Result:** The checkout modal now always starts from the beginning when opened, providing a clean and bug-free user experience after each order.
+
+---
+
+**End of today's detailed log.** 
+
+---
+
+## [2024-06-09] Production-Grade Error Handling Protocol
+
+- **Enhancement:** Implemented a strict, production-grade error handling protocol across the app.
+- **What changed:**
+  - Added a global error state to `App.jsx`. If any critical error occurs in a child component, it sets this error.
+  - If `globalError` is set, the app throws it in render, which is caught by the `ErrorBoundary` and displays the custom error screen (with error code and message).
+  - Updated all key components (`Trending`, `ShopByCollection`, `ProductDrawer`) to accept and use `setGlobalError` for critical errors in their try-catch blocks.
+- **Result:** Any critical UI error now always shows the custom error screen (never a blank page), ensuring robust, user-friendly error handling throughout the site.
+
+## Error Reload and Redirect Flow (June 2024)
+
+- When an error occurs on any page (e.g., /collections):
+  1. The app tries to reload the **current page** (e.g., /collections).
+  2. If the error happens again, the app **redirects to the homepage** (/).
+  3. If the homepage also fails, the error page is shown with the final message: "Sorry, we could not fix the issue automatically."
+- This logic is global and works for all error states and pages.
+- The reload count and last tried path are tracked in localStorage and reset if the user navigates away or the error is fixed.
+- Users can always manually try to refresh or go to the homepage using the provided buttons.

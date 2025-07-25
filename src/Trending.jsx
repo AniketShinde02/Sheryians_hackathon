@@ -93,33 +93,60 @@ const ProductImage = ({ src, alt }) => {
         alt={alt}
         className={`object-cover w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-110 ${loaded ? '' : 'hidden'}`}
         onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
+        onError={() => { setError(true); console.error('Image failed to load:', src); }}
       />
     </div>
   );
 };
 
 // Fix TrendingProductCard: pass onCart as a prop
-const TrendingProductCard = ({ product, onAddToCart, onCart }) => {
+const TrendingProductCard = ({ product, onAddToCart, onCart, setGlobalError }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [error, setError] = useState("");
+  const [imgError, setImgError] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const handleImageError = () => {
+    setImgError(true);
+    setError("Failed to load product image.");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+  const handleAddToCart = () => {
+    try {
+      setDrawerOpen(true);
+    } catch (e) {
+      console.error('Error in handleAddToCart (TrendingProductCard):', e);
+      if (setGlobalError) setGlobalError(e);
+      setError("Failed to open product drawer. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    }
+  };
   return (
     <>
     <motion.div
         variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 80 } } }}
         initial="hidden"
         animate="visible"
-        className="w-[90vw] max-w-xs mx-auto rounded-2xl bg-[#2F3D3D] shadow-lg p-2 sm:p-3 flex flex-col group text-center mb-3"
+        className="w-full max-w-xs mx-auto rounded-2xl bg-[#232b24] shadow-lg p-2 sm:p-3 flex flex-col group text-center mb-3"
     >
-      <ProductImage src={product.img} alt={product.name} />
+      <div className="w-full aspect-[4/5] bg-[#3A4A4A] flex items-center justify-center overflow-hidden rounded-xl mb-2">
+        <img src={imgError ? 'https://images.unsplash.com/photo-1611890798517-07b0fcb4a811?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' : product.img} alt={product.name} className="object-cover w-full h-full" onError={() => { handleImageError(); console.error('Product image failed to load:', product.img); }} />
+      </div>
         <h4 className="text-base sm:text-lg font-serif font-bold text-white mb-1 group-hover:text-orange-300 transition-colors duration-300">{product.name}</h4>
         <p className="text-orange-300 font-bold text-xs sm:text-base mb-2">{product.price}</p>
       <button
-          onClick={() => setDrawerOpen(true)}
+          onClick={handleAddToCart}
           className="mt-auto px-4 py-2 rounded-full font-semibold shadow transition-all text-xs sm:text-sm w-full group-hover:shadow-lg group-hover:scale-105 bg-yellow-300 text-yellow-900 font-bold"
         >
           Add to Cart
       </button>
+      {/* Error Toast */}
+      {showToast && error && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg z-[9999] font-bold animate-fade-in-up">
+          {error}
+        </div>
+      )}
     </motion.div>
       <ProductDrawer
         open={drawerOpen}
@@ -172,7 +199,7 @@ const TrendingModal = ({ trendingSet, onClose, onAddToCart, onCart }) => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 40 }}
           transition={{ type: 'spring', stiffness: 220, damping: 22 }}
-          className="relative w-[95vw] max-w-xs sm:max-w-2xl md:max-w-5xl h-[90vh] bg-[#2F3D3D] rounded-2xl shadow-2xl flex flex-col mx-auto"
+          className="relative w-[95vw] max-w-xs sm:max-w-2xl md:max-w-5xl max-h-[80vh] bg-[#2F3D3D] rounded-2xl shadow-2xl flex flex-col mx-auto overflow-y-auto overflow-x-hidden"
           onClick={e => e.stopPropagation()}
         >
           <div className="p-3 sm:p-4 md:p-6 border-b border-white/10 flex justify-between items-center">
@@ -181,10 +208,12 @@ const TrendingModal = ({ trendingSet, onClose, onAddToCart, onCart }) => {
               <X className="w-6 h-6" />
             </button>
           </div>
-          <div className="flex-grow p-2 sm:p-3 md:p-6 overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
+          <div className="flex-grow p-2 sm:p-3 md:p-6 overflow-y-auto overflow-x-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
               {trendingSet.products.map(product => (
-                <TrendingProductCard key={product.id} product={product} onAddToCart={onAddToCart} onCart={onCart} />
+                <div className="w-full max-w-xs mx-auto" key={product.id}>
+                  <TrendingProductCard product={product} onAddToCart={onAddToCart} onCart={onCart} />
+                </div>
               ))}
             </div>
           </div>
@@ -200,10 +229,10 @@ const trendingSets = [
     id: 1,
     name: "Blue Retail",
     products: [
-      { id: 11, name: "Blue Tee", price: "₹1,299", img: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=800" },
-      { id: 12, name: "Denim Shorts", price: "₹1,499", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800" },
-      { id: 13, name: "Ocean Hoodie", price: "₹1,899", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?q=80&w=800" },
-      { id: 14, name: "Wave Sneakers", price: "₹2,299", img: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=800" },
+      { id: 11, name: "Blue Tee", price: "₹1,299", img: "https://images.unsplash.com/photo-1677709678785-bbe8227262cf?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
+      { id: 12, name: "Khadi Shorts", price: "₹1,499", img: "https://images.unsplash.com/photo-1599346821185-6860259a6db7?q=80&w=659&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
+      { id: 13, name: "Ocean Hoodie", price: "₹1,899", img: "https://images.unsplash.com/photo-1720410849401-fd5ed7360056?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
+      { id: 14, name: "Crop Top", price: "₹2,299", img: "https://images.unsplash.com/photo-1530981785497-a62037228fe9?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
     ]
   },
   {
@@ -252,7 +281,7 @@ export default function TrendingPage({ onAddToCart, cartCount = 0, onCart }) {
   return (
     <ErrorBoundary>
       <div className="min-h-screen w-full bg-[#F7F7F2] font-sans">
-        <header className="p-4 sm:p-5 md:px-8 flex flex-row justify-between items-center">
+        <header className="p-4 sm:p-5 md:px-10 lg:px-16 xl:px-24 flex flex-row justify-between items-center">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-7 h-7 text-gray-800" />
             <span className="text-xl font-bold text-gray-800 font-grotesk tracking-wider">OVERLAYS</span>
@@ -281,7 +310,7 @@ export default function TrendingPage({ onAddToCart, cartCount = 0, onCart }) {
                   initial="hidden"
                   animate="visible"
                   whileHover={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.10)' }}
-                  className="bg-[#2F3D3D] rounded-2xl shadow-lg p-0 flex flex-col group transition-all duration-200 border border-[#e5e5e5] overflow-hidden cursor-pointer"
+                  className="w-[90vw] max-w-xs mx-auto sm:w-full sm:max-w-none bg-[#2F3D3D] rounded-2xl shadow-lg p-0 flex flex-col group transition-all duration-200 border border-[#e5e5e5] overflow-hidden cursor-pointer"
                 >
                   <div className="w-full aspect-[4/5] bg-[#3A4A4A] flex items-center justify-center overflow-hidden">
                     <img

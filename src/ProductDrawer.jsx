@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
-export default function ProductDrawer({ open, product, onClose, onAddToCart, onAddToCartAndCheckout }) {
+export default function ProductDrawer({ open, product, onClose, onAddToCart, onAddToCartAndCheckout, setGlobalError }) {
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -23,9 +25,21 @@ export default function ProductDrawer({ open, product, onClose, onAddToCart, onA
   const unavailableSizes = product.unavailableSizes || [];
 
   const handleAdd = () => {
-    if (selectedSize) {
+    if (!selectedSize) {
+      setError("Please select a size before adding to cart.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+      return;
+    }
+    try {
       onAddToCart({ ...product, size: selectedSize, quantity });
       setAdded(true);
+    } catch (e) {
+      console.error('Error in handleAdd (ProductDrawer):', e);
+      if (setGlobalError) setGlobalError(e);
+      setError("Failed to add to cart. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
     }
   };
   const handleGoToCart = () => {
@@ -60,31 +74,31 @@ export default function ProductDrawer({ open, product, onClose, onAddToCart, onA
               <button onClick={onClose} className="text-lg sm:text-2xl font-bold p-1 sm:p-2 bg-transparent text-[#222] hover:bg-transparent focus:outline-none" aria-label="Close">&times;</button>
             </div>
             {/* Product Info */}
-            <div className="flex-1 flex flex-col items-center px-3 sm:px-6 py-2 gap-2 sm:gap-3 overflow-y-visible">
-              <img src={product.img} alt={product.name} className="w-32 h-32 object-cover rounded-lg mx-auto" />
+            <div className="flex-1 flex flex-col items-center px-2 sm:px-4 md:px-6 py-2 gap-2 sm:gap-3 md:gap-4 overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <img src={product.img} alt={product.name} className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 object-cover rounded-lg mx-auto" onError={() => console.error('Product image failed to load:', product.img)} />
               <div className="w-full text-center">
-                <div className="font-bold text-base sm:text-lg">{product.brand || "OVERLAYS CLOTHING"}</div>
-                <div className="text-lg sm:text-xl font-semibold">{product.name}</div>
+                <div className="font-bold text-sm sm:text-base md:text-lg">{product.brand || "OVERLAYS CLOTHING"}</div>
+                <div className="text-base sm:text-lg md:text-xl font-semibold">{product.name}</div>
                 <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="text-orange-600 font-bold text-xl">₹ {product.price}</span>
+                  <span className="text-orange-600 font-bold text-lg sm:text-xl md:text-2xl">{product.price}</span>
                   {product.oldPrice && (
-                    <span className="line-through text-gray-400">₹ {product.oldPrice}</span>
+                    <span className="line-through text-gray-400 text-xs sm:text-sm"> {product.oldPrice}</span>
                   )}
                 </div>
               </div>
               {/* Size Selection */}
               <div className="w-full flex flex-col items-center gap-2">
                 <div className="flex items-center justify-between w-full">
-                  <span className="font-semibold">Size:</span>
+                  <span className="font-semibold text-xs sm:text-sm md:text-base">Size:</span>
                   <a href="#" className="text-xs underline text-gray-500">Size chart</a>
                 </div>
                 {/* Size selection: make buttons smaller and fit in a single row */}
-                <div className="flex flex-row gap-2 w-full justify-center overflow-x-auto pb-1">
+                <div className="flex flex-row gap-1 sm:gap-2 w-full justify-center overflow-x-auto pb-1">
                   {SIZES.map(size => (
                     <button
                       key={size}
                       disabled={unavailableSizes.includes(size)}
-                      className={`min-w-[2.5rem] max-w-[3rem] px-0.5 py-1 rounded border font-bold text-sm transition-all duration-150 ${
+                      className={`min-w-[2.5rem] px-2 py-1.5 text-sm sm:min-w-[2.75rem] sm:text-base md:min-w-[3rem] md:text-base md:max-w-[2.5rem] rounded border font-bold transition-all duration-150 ${
                         selectedSize === size
                           ? "bg-black text-white"
                           : unavailableSizes.includes(size)
@@ -100,7 +114,7 @@ export default function ProductDrawer({ open, product, onClose, onAddToCart, onA
               </div>
               {/* Quantity Selector */}
               <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mt-2">
-                <span className="font-semibold">Quantity:</span>
+                <span className="font-semibold text-xs sm:text-sm md:text-base">Quantity:</span>
                 <div className="flex items-center gap-2">
                   <button
                     className="px-3 py-1 border rounded text-lg font-bold"
@@ -136,6 +150,12 @@ export default function ProductDrawer({ open, product, onClose, onAddToCart, onA
                   </button>
                 )}
               </div>
+              {/* Error Toast */}
+              {showToast && error && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg z-[9999] font-bold animate-fade-in-up">
+                  {error}
+                </div>
+              )}
               {/* Trust Badges */}
               <div className="flex flex-row justify-between items-start w-full mt-3 gap-2 text-xs text-gray-700">
                 <div className="flex flex-col items-center flex-1 min-w-0">

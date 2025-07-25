@@ -30,17 +30,63 @@ const AstronautGame = () => {
 
 // --- THEMED ERROR PAGE COMPONENT ---
 function ThemedErrorPage({ code, title, message }) {
+  const [reloadCount, setReloadCount] = React.useState(() => Number(localStorage.getItem('errorReloadCount') || 0));
+  const [reloading, setReloading] = React.useState(false);
+  const [finalFail, setFinalFail] = React.useState(false);
+
+  React.useEffect(() => {
+    const lastTriedPath = localStorage.getItem('errorLastTriedPath');
+    const currentPath = window.location.pathname + window.location.search;
+    if (reloadCount < 1) {
+      setReloading(true);
+      localStorage.setItem('errorLastTriedPath', currentPath);
+      const timer = setTimeout(() => {
+        localStorage.setItem('errorReloadCount', reloadCount + 1);
+        window.location.reload();
+      }, 1800);
+      return () => clearTimeout(timer);
+    } else if (reloadCount === 1) {
+      setReloading(true);
+      // If already tried homepage, go to error
+      const timer = setTimeout(() => {
+        localStorage.setItem('errorReloadCount', reloadCount + 1);
+        localStorage.setItem('errorLastTriedPath', '/');
+        window.location.href = '/';
+      }, 1800);
+      return () => clearTimeout(timer);
+    } else {
+      setFinalFail(true);
+      setReloading(false);
+      localStorage.removeItem('errorReloadCount');
+      localStorage.removeItem('errorLastTriedPath');
+    }
+  }, []); // Only run on mount
+
+  React.useEffect(() => {
+    // Reset reload count if error page unmounts (user navigates away or error is fixed)
+    return () => {
+      localStorage.removeItem('errorReloadCount');
+      localStorage.removeItem('errorLastTriedPath');
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#232b24] text-yellow-300 p-4 text-center font-mono">
-      <div className="w-full max-w-xs sm:max-w-md md:max-w-lg mx-auto rounded-2xl shadow-lg bg-[#232b24]/90 p-6 mb-8">
-        <h1 className="text-5xl sm:text-7xl md:text-9xl font-black glitch" data-text={code}>{code}</h1>
-        <h2 className="text-xl sm:text-2xl md:text-4xl font-bold mt-2 mb-2 sm:mb-3">{title}</h2>
-        <p className="text-base sm:text-lg text-yellow-100 max-w-xs sm:max-w-md mx-auto mb-2">{message}</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f0] text-yellow-300 p-2 sm:p-4 md:p-6 text-center font-mono">
+      <div className="w-full max-w-xs sm:max-w-md md:max-w-lg mx-auto rounded-2xl shadow-lg bg-[#232b24]/90 p-4 sm:p-6 md:p-8 mb-8">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-black glitch" data-text={code}>{code}</h1>
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-4xl font-bold mt-2 mb-2 sm:mb-3">{title}</h2>
+        <p className="text-sm sm:text-base md:text-lg text-yellow-100 max-w-xs sm:max-w-md mx-auto mb-2">{message}</p>
+        {reloading && (
+          <div className="my-4 text-base sm:text-lg md:text-xl text-yellow-200 animate-pulse">We are reloading for you...</div>
+        )}
+        {finalFail && (
+          <div className="my-4 text-base sm:text-lg md:text-xl text-red-300">Sorry, we could not fix the issue automatically.</div>
+        )}
         <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
-          <button onClick={() => window.location.reload()} className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-yellow-300 text-yellow-900 font-bold rounded-lg shadow-lg hover:bg-yellow-400 transform hover:-translate-y-1 transition-all duration-300 text-sm sm:text-base">
+          <button onClick={() => { localStorage.removeItem('errorReloadCount'); localStorage.removeItem('errorLastTriedPath'); window.location.reload(); }} className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-yellow-300 text-yellow-900 font-bold rounded-lg shadow-lg hover:bg-yellow-400 transform hover:-translate-y-1 transition-all duration-300 text-xs sm:text-sm md:text-base">
             &#x21bb; Refresh Page
           </button>
-          <button onClick={() => window.location.href = '/'} className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-white text-green-700 font-semibold rounded-lg hover:bg-yellow-100 transition-colors text-sm sm:text-base">
+          <button onClick={() => { localStorage.removeItem('errorReloadCount'); localStorage.removeItem('errorLastTriedPath'); window.location.href = '/'; }} className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-white text-green-700 font-semibold rounded-lg hover:bg-yellow-100 transition-colors text-xs sm:text-sm md:text-base">
             &#8962; Homepage
           </button>
         </div>
@@ -72,6 +118,41 @@ export function Page500() {
   return <ThemedErrorPage code="500" title="SYSTEM MALFUNCTION" message="Our circuits are fried! A team of robotic engineers has been dispatched to fix the issue. Please try refreshing." />;
 }
 
+// --- RELOAD TIMEOUT ERROR PAGE ---
+export function ReloadTimeoutErrorPage({ onCountdownEnd }) {
+  const [secondsLeft, setSecondsLeft] = React.useState(30);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(interval);
+          if (onCountdownEnd) onCountdownEnd();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [onCountdownEnd]);
+  // Format as 0:30, 0:29, ...
+  const formattedTime = `0:${secondsLeft.toString().padStart(2, '0')}`;
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f0] text-yellow-300 p-2 sm:p-4 md:p-6 text-center font-mono">
+      <div className="w-full max-w-xs sm:max-w-md md:max-w-lg mx-auto rounded-2xl shadow-lg bg-[#232b24]/90 p-4 sm:p-6 md:p-8 mb-8 flex flex-col items-center">
+        <svg className="mb-4 w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="32,6 62,58 2,58" fill="#FACC15" stroke="#F59E42" strokeWidth="2" />
+          <text x="32" y="46" textAnchor="middle" fontSize="32" fontWeight="bold" fill="#B91C1C" dy="-2">!</text>
+        </svg>
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-red-500 mb-2">Too Many Reloads</h2>
+        <p className="text-sm sm:text-base md:text-lg text-red-400 max-w-xs sm:max-w-md mx-auto mb-4 font-bold">You've reloaded the site too many times in a short span.<br />Please wait <span className="font-bold text-red-500 text-lg">{formattedTime}</span> before trying again.</p>
+        <button disabled className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-red-200 text-red-700 font-bold rounded-lg shadow-lg text-xs sm:text-sm md:text-base opacity-60 cursor-not-allowed">
+          Please wait...
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // --- ERROR PAGE LAYOUT ---
 export function ErrorPageLayout({ statusCode }) {
   switch (statusCode) {
@@ -89,27 +170,53 @@ export function ErrorPageLayout({ statusCode }) {
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, reloadCount: Number(localStorage.getItem('errorReloadCount') || 0), reloading: false, finalFail: false };
   }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
   componentDidCatch(error, errorInfo) {
     this.setState({ error, errorInfo });
-    // Optionally log to a remote service here
     if (window && window.console) {
       console.error('Boundary Error:', error, errorInfo);
     }
+    const lastTriedPath = localStorage.getItem('errorLastTriedPath');
+    const currentPath = window.location.pathname + window.location.search;
+    if (this.state.reloadCount < 1) {
+      this.setState({ reloading: true });
+      localStorage.setItem('errorLastTriedPath', currentPath);
+      setTimeout(() => {
+        localStorage.setItem('errorReloadCount', this.state.reloadCount + 1);
+        window.location.reload();
+      }, 1800);
+    } else if (this.state.reloadCount === 1) {
+      this.setState({ reloading: true });
+      setTimeout(() => {
+        localStorage.setItem('errorReloadCount', this.state.reloadCount + 1);
+        localStorage.setItem('errorLastTriedPath', '/');
+        window.location.href = '/';
+      }, 1800);
+    } else {
+      this.setState({ finalFail: true, reloading: false });
+      localStorage.removeItem('errorReloadCount');
+      localStorage.removeItem('errorLastTriedPath');
+    }
   }
-  handleReload = () => window.location.reload();
-  handleHome = () => window.location.href = '/';
+  handleReload = () => { localStorage.removeItem('errorReloadCount'); localStorage.removeItem('errorLastTriedPath'); window.location.reload(); };
+  handleHome = () => { localStorage.removeItem('errorReloadCount'); localStorage.removeItem('errorLastTriedPath'); window.location.href = '/'; };
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-[#2d3a2e] text-yellow-300 p-4 text-center font-mono">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f0] text-yellow-300 p-4 text-center font-mono">
           <div className="w-full max-w-xs sm:max-w-md md:max-w-lg mx-auto rounded-2xl shadow-lg bg-[#232b24]/90 p-6 mb-8">
             <h1 className="text-5xl sm:text-7xl md:text-9xl font-black glitch" data-text="500">500</h1>
             <h2 className="text-xl sm:text-2xl md:text-4xl font-bold mt-2 mb-2 sm:mb-3">SYSTEM MALFUNCTION</h2>
             <p className="text-base sm:text-lg text-yellow-100 max-w-xs sm:max-w-md mx-auto mb-2">Something went wrong. Please try refreshing the page or go back to the homepage.</p>
+            {this.state.reloading && (
+              <div className="my-4 text-base sm:text-lg md:text-xl text-yellow-200 animate-pulse">We are reloading for you...</div>
+            )}
+            {this.state.finalFail && (
+              <div className="my-4 text-base sm:text-lg md:text-xl text-red-300">Sorry, we could not fix the issue automatically.</div>
+            )}
             <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
               <button onClick={this.handleReload} className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-yellow-300 text-yellow-900 font-bold rounded-lg shadow-lg hover:bg-yellow-400 transform hover:-translate-y-1 transition-all duration-300 text-sm sm:text-base">
                 &#x21bb; Try Again
@@ -129,4 +236,24 @@ export class ErrorBoundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+// --- OFFLINE ERROR POPUP ---
+export function OfflineErrorPopup() {
+  return (
+    <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm w-full h-full min-h-screen p-2 sm:p-4 md:p-6 text-center select-none">
+      <div className="w-full max-w-xs sm:max-w-md md:max-w-lg mx-auto rounded-2xl shadow-lg bg-[#232b24]/90 p-4 sm:p-6 md:p-8 mb-8 flex flex-col items-center">
+        {/* Warning triangle with exclamation mark */}
+        <svg className="mb-4 w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="32,6 62,58 2,58" fill="#FACC15" stroke="#F59E42" strokeWidth="2" />
+          <text x="32" y="46" textAnchor="middle" fontSize="32" fontWeight="bold" fill="#B91C1C" dy="-2">!</text>
+        </svg>
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-red-500 mb-2">You are offline</h2>
+        <p className="text-sm sm:text-base md:text-lg text-yellow-100 max-w-xs sm:max-w-md mx-auto mb-4">It looks like your device is not connected to the internet. Please check your connection and try again. The site will automatically resume when you are back online.</p>
+        <button onClick={() => window.location.reload()} className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-yellow-300 text-yellow-900 font-bold rounded-lg shadow-lg hover:bg-yellow-400 transform hover:-translate-y-1 transition-all duration-300 text-xs sm:text-sm md:text-base">
+          &#x21bb; Try Again
+        </button>
+      </div>
+    </div>
+  );
 }
